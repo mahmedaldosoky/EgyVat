@@ -23,14 +23,20 @@ async function fetchApi(endpoint: string, options?: RequestInit) {
     throw new ApiError(response.status, `API Error: ${response.statusText}`)
   }
 
-  return response.json()
+  const data = await response.json()
+  return data.body ? JSON.parse(data.body) : data
+}
+
+async function getInvoicesHelper(): Promise<Invoice[]> {
+  const response = await fetchApi('/invoices')
+    return response.data.invoices
+
 }
 
 export const api = {
   // Invoice operations - connected to your Lambda functions
   async getInvoices(): Promise<Invoice[]> {
-    // GET /invoices -> EgyVAT-InvoiceRetriever
-    return fetchApi('/invoices')
+    return getInvoicesHelper()
   },
 
   async getInvoice(invoiceNumber: string): Promise<Invoice> {
@@ -65,23 +71,49 @@ export const api = {
   // Dashboard stats - derived from invoice data
   async getDashboardStats(): Promise<DashboardStats> {
     try {
-      const invoices = await this.getInvoices()
+      const invoices = await getInvoicesHelper()
+      console.log('getDashboardStats - invoices:', invoices)
+      console.log('getDashboardStats - invoices length:', invoices.length)
       
       // Calculate stats from invoice data
       const totalInvoices = invoices.length
-      const paidInvoices = invoices.filter(inv => inv.status === 'paid').length
+      const validatedInvoices = invoices.filter(inv => {
+        console.log('Checking invoice status:', inv.status)
+        return inv.status === 'validated'
+      }).length
       const pendingInvoices = invoices.filter(inv => inv.status === 'sent' || inv.status === 'draft').length
+      
+      console.log('Total invoices:', totalInvoices)
+      console.log('Validated invoices:', validatedInvoices)
+      
+      // Calculate total revenue from validated invoices
       const totalRevenue = invoices
-        .filter(inv => inv.status === 'paid')
-        .reduce((sum, inv) => sum + inv.lines.reduce((lineSum, line) => lineSum + line.amount, 0), 0)
+        .filter(inv => inv.status === 'validated')
+        .reduce((sum, inv) => {
+          const invoiceTotal = inv.lines.reduce((lineSum, line) => {
+            // Calculate line total: (quantity * unitPrice) - discountAmount + VAT
+            const lineSubtotal = (line.quantity * line.unitPrice) - (line.discountAmount || 0)
+            const vatAmount = lineSubtotal * ((line.vatRate || 0) / 100)
+            console.log(`Line calculation: ${line.quantity} * ${line.unitPrice} - ${line.discountAmount} + VAT(${line.vatRate}%) = ${lineSubtotal + vatAmount}`)
+            return lineSum + lineSubtotal + vatAmount
+          }, 0)
+          console.log('Invoice total:', invoiceTotal)
+          return sum + invoiceTotal
+        }, 0)
 
-      return {
+      console.log('Total revenue:', totalRevenue)
+
+      const stats = {
         totalInvoices,
         totalRevenue,
-        paidInvoices,
+        paidInvoices: validatedInvoices, // Using validated as "paid" for now
         pendingInvoices
       }
+      
+      console.log('Final stats:', stats)
+      return stats
     } catch (error) {
+      console.error('Error calculating dashboard stats:', error)
       // Return default stats if API fails
       return {
         totalInvoices: 0,
@@ -94,7 +126,7 @@ export const api = {
 
   // Search invoices - client-side filtering for now
   async searchInvoices(query: string): Promise<Invoice[]> {
-    const invoices = await this.getInvoices()
+    const invoices = await getInvoicesHelper()
     const lowerQuery = query.toLowerCase()
     
     return invoices.filter(invoice =>
