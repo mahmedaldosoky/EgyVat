@@ -40,18 +40,18 @@ export interface Company {
 
 export interface InvoiceLine {
   description: string
-  itemCode: string
-  gS1Code: string
-  unitType: string
+  itemCode?: string // Made optional for form compatibility
+  gS1Code?: string // Made optional for form compatibility
+  unitType?: string // Made optional for form compatibility
   quantity: number
   unitPrice: number
-  discountRate: number
-  discountAmount: number
-  vatRate: number
-  taxItems: any[]
+  discountRate?: number // Made optional for form compatibility
+  discountAmount?: number // Made optional for form compatibility
+  vatRate?: number // Made optional for form compatibility
+  taxRate?: number // For form compatibility
+  taxItems?: any[] // Made optional for form compatibility
   // Legacy field for backward compatibility
   amount?: number
-  taxRate?: number
 }
 
 export interface ValidationError {
@@ -61,7 +61,7 @@ export interface ValidationError {
 
 export interface CreateInvoiceRequest {
   customer: Company
-  lines: InvoiceLine[]
+  lines: InvoiceLine[] // Now compatible with form data
   issueDate: string
 }
 

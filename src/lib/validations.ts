@@ -9,11 +9,21 @@ export const egyptianActivityCodeSchema = z
   .string()
   .regex(/^\d{5}$/, "Activity Code must be exactly 5 digits")
 
+// Simple form-compatible line schema
 export const invoiceLineSchema = z.object({
   description: z.string().min(1, "Description is required"),
   quantity: z.number().min(0.01, "Quantity must be greater than 0"),
   unitPrice: z.number().min(0, "Unit price cannot be negative"),
   taxRate: z.number().min(0).max(1, "Tax rate must be between 0 and 100%").default(0.14), // 14% Egyptian VAT
+  // Optional fields for API compatibility
+  itemCode: z.string().optional(),
+  gS1Code: z.string().optional(),
+  unitType: z.string().optional(),
+  discountRate: z.number().optional(),
+  discountAmount: z.number().optional(),
+  vatRate: z.number().optional(),
+  taxItems: z.array(z.any()).optional(),
+  amount: z.number().optional(),
 })
 
 export const companySchema = z.object({
