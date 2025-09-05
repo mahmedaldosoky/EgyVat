@@ -1,8 +1,9 @@
-import { FileText, DollarSign, CheckCircle, Clock, TrendingUp, ArrowUpRight, Eye, Download } from 'lucide-react'
+import { FileText, DollarSign, CheckCircle, Clock, TrendingUp, ArrowUpRight, Download, Eye } from 'lucide-react'
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDashboardStats, useInvoices } from '@/hooks/useInvoices'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { Link } from 'react-router-dom'
+import { generatePDF } from '@/lib/pdfGenerator'
 
 export function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
@@ -164,14 +165,16 @@ export function Dashboard() {
         <div className="card-premium animate-fade-in">
           <CardHeader className="card-premium-header">
             <div className="flex items-center justify-between">
-              <div className="text-center ">
+              <div>
                 <CardTitle className="text-xl font-semibold text-slate-900">Recent Invoices</CardTitle>
                 <p className="mt-1 text-sm text-slate-500">Latest transactions and their current status</p>
               </div>
-<Link 
-  to="/invoices"
-  className="text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors duration-200"
-/>
+              <Link 
+                to="/invoices"
+                className="text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors duration-200"
+              >
+                View All →
+              </Link>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -212,6 +215,9 @@ export function Dashboard() {
                       <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                         Date
                       </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -219,26 +225,28 @@ export function Dashboard() {
                       <tr key={invoice.uuid} className="border-b border-slate-100 hover:bg-slate-50 animate-slide-in" style={{animationDelay: `${index * 50}ms`}}>
                         <td className="px-6 py-4">
                           <div>
-                            <p className="font-semibold text-slate-900">{invoice.invoiceNumber}</p>
+                            <p className="font-semibold text-slate-900">{invoice.invoiceNumber || 'No Number'}</p>
                             <p className="text-xs text-slate-500 uppercase tracking-wide">
-                              {invoice.documentType} • {invoice.currency}
+                              {invoice.documentType || 'INVOICE'} • {invoice.currency || 'EGP'}
                             </p>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div>
-                            <p className="font-medium text-slate-900">{invoice.customer.name}</p>
+                            <p className="font-medium text-slate-900">{invoice.customer?.name || 'Unknown'}</p>
                             <p className="text-sm text-slate-500">
-                              {invoice.customer.type === 'b2B' ? 'Business' : 'Individual'}
+                              {invoice.customer?.type === 'b2B' ? 'Business' : 'Individual'}
                             </p>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-bold text-lg text-slate-900">
                             {formatCurrency(
-                              invoice.lines.reduce((sum, line) => {
-                                const lineSubtotal = (line.quantity * line.unitPrice) - (line.discountAmount || 0)
-                                const vatAmount = lineSubtotal * ((line.vatRate || 0) / 100)
+                              (invoice.lines || []).reduce((sum, line) => {
+                                const quantity = line?.quantity || 0
+                                const unitPrice = line?.unitPrice || 0
+                                const lineSubtotal = (quantity * unitPrice) - (line?.discountAmount || 0)
+                                const vatAmount = lineSubtotal * ((line?.vatRate || line?.taxRate || 14) / 100)
                                 return sum + lineSubtotal + vatAmount
                               }, 0)
                             )}
@@ -246,18 +254,32 @@ export function Dashboard() {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`status-${invoice.status === 'validated' ? 'validated' : 
-                                           invoice.status === 'sent' ? 'pending' : 'draft'}`}>
-                            {invoice.status}
+                          invoice.status === 'sent' ? 'pending' : 'draft'}`}>
+                          {invoice.status || 'draft'}
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <p className="text-sm text-slate-600">
-                            {new Date(invoice.issueDateTime).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })}
+                            {formatDate(invoice.issueDateTime)}
                           </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => generatePDF(invoice)}
+                              className="text-brand-600 hover:text-brand-700 transition-colors"
+                              title="Download PDF"
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                            <Link 
+                              to={`/invoices/${encodeURIComponent(invoice.invoiceNumber)}`}
+                              className="text-slate-600 hover:text-slate-700 transition-colors"
+                              title="View Details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))}

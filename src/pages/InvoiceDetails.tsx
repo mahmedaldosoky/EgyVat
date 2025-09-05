@@ -1,10 +1,11 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Download, Edit } from 'lucide-react'
+import { ArrowLeft, Download } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useInvoice, useUpdateInvoiceStatus } from '@/hooks/useInvoices'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { generatePDF } from '@/lib/pdfGenerator'
 
 export function InvoiceDetails() {
   const { invoiceNumber } = useParams<{ invoiceNumber: string }>()
@@ -58,8 +59,13 @@ export function InvoiceDetails() {
     )
   }
 
-  const subtotal = invoice.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0)
-  const totalTax = invoice.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice * line.taxRate), 0)
+  // Ensure lines array exists and handle potentially undefined values
+  const lines = invoice.lines || []
+  const subtotal = lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0)
+  const totalTax = lines.reduce((sum, line) => {
+    const taxRate = line.taxRate || line.vatRate || 0.14 // Default to 14% VAT if not specified
+    return sum + (line.quantity * line.unitPrice * taxRate)
+  }, 0)
   const total = subtotal + totalTax
 
   return (
@@ -76,21 +82,26 @@ export function InvoiceDetails() {
             </Link>
           </div>
           <div className="flex items-center space-x-4">
-            <h1 className="text-3xl font-bold text-gray-900">{invoice.invoiceNumber}</h1>
-            <Badge variant={getStatusVariant(invoice.status)}>
-              {invoice.status}
+            <h1 className="text-3xl font-bold text-gray-900">{invoice.invoiceNumber || 'Invoice Details'}</h1>
+            <Badge variant={getStatusVariant(invoice.status || 'draft')}>
+              {invoice.status || 'draft'}
             </Badge>
           </div>
-          <p className="mt-2 text-gray-600">
-            Created on {formatDate(invoice.createdAt)}
-          </p>
+          {invoice.createdAt && (
+            <p className="mt-2 text-gray-600">
+              Created on {formatDate(invoice.createdAt)}
+            </p>
+          )}
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => generatePDF(invoice)}
+          >
             <Download className="h-4 w-4 mr-2" />
             Download PDF
           </Button>
-          {invoice.status !== 'paid' && (
+          {invoice?.status && invoice.status !== 'paid' && (
             <div className="flex space-x-2">
               {invoice.status === 'draft' && (
                 <Button 
@@ -125,12 +136,12 @@ export function InvoiceDetails() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <p className="font-semibold">{invoice.supplier.name}</p>
-                  <p className="text-gray-600">{invoice.supplier.address}</p>
+                  <p className="font-semibold">{invoice.supplier?.name || 'N/A'}</p>
+                  <p className="text-gray-600">{invoice.supplier?.address || 'N/A'}</p>
                   <p className="text-sm text-gray-500">
-                    Tax Number: {invoice.supplier.taxNumber}
+                    Tax Number: {invoice.supplier?.taxNumber || 'N/A'}
                   </p>
-                  {invoice.supplier.activityCode && (
+                  {invoice.supplier?.activityCode && (
                     <p className="text-sm text-gray-500">
                       Activity Code: {invoice.supplier.activityCode}
                     </p>
@@ -145,14 +156,16 @@ export function InvoiceDetails() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <p className="font-semibold">{invoice.customer.name}</p>
-                  <p className="text-gray-600">{invoice.customer.address}</p>
-                  <p className="text-sm text-gray-500">
-                    Tax Number: {invoice.customer.taxNumber}
-                  </p>
-                  {invoice.customer.activityCode && (
+                  <p className="font-semibold">{invoice.customer?.name || 'N/A'}</p>
+                  <p className="text-gray-600">{invoice.customer?.address || 'N/A'}</p>
+                  {invoice.customer?.taxNumber && (
                     <p className="text-sm text-gray-500">
-                      Activity Code: {invoice.customer.activityCode}
+                      Tax Number: {invoice.customer.taxNumber}
+                    </p>
+                  )}
+                  {invoice.customer?.type === 'b2B' && invoice.customer?.nationalId && (
+                    <p className="text-sm text-gray-500">
+                      Registration: {invoice.customer.nationalId}
                     </p>
                   )}
                 </div>
@@ -178,17 +191,23 @@ export function InvoiceDetails() {
                     </tr>
                   </thead>
                   <tbody>
-                    {invoice.lines.map((line, index) => (
+                    {lines && lines.length > 0 ? lines.map((line, index) => (
                       <tr key={index} className="border-b border-gray-100">
                         <td className="py-3 px-2">{line.description}</td>
                         <td className="text-right py-3 px-2">{line.quantity}</td>
                         <td className="text-right py-3 px-2">{formatCurrency(line.unitPrice)}</td>
-                        <td className="text-right py-3 px-2">{(line.taxRate * 100).toFixed(0)}%</td>
+                        <td className="text-right py-3 px-2">{((line.taxRate || line.vatRate || 0.14) * 100).toFixed(0)}%</td>
                         <td className="text-right py-3 px-2 font-semibold">
-                          {formatCurrency(line.amount)}
+                          {formatCurrency(line.amount || (line.quantity * line.unitPrice))}
                         </td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan={5} className="text-center py-4 text-gray-500">
+                          No line items found
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -209,15 +228,15 @@ export function InvoiceDetails() {
               </div>
               <div className="flex justify-between">
                 <span>Currency:</span>
-                <span className="font-medium">{invoice.currency}</span>
+                <span className="font-medium">{invoice.currency || 'EGP'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Exchange Rate:</span>
-                <span className="font-medium">{invoice.exchangeRate}</span>
+                <span className="font-medium">{invoice.exchangeRate || '1.00'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Document Type:</span>
-                <span className="font-medium">{invoice.documentType}</span>
+                <span className="font-medium">{invoice.documentType || 'Standard Invoice'}</span>
               </div>
             </CardContent>
           </Card>

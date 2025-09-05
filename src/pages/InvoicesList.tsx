@@ -1,20 +1,20 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Plus, Eye } from 'lucide-react'
+import { Search, Plus, Eye, Download } from 'lucide-react'
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { useInvoices } from '@/hooks/useInvoices'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { generatePDF } from '@/lib/pdfGenerator'
 
 export function InvoicesList() {
   const [searchTerm, setSearchTerm] = useState('')
   const { data: invoices, isLoading } = useInvoices()
 
   const filteredInvoices = invoices?.filter(invoice =>
-    invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.customer.name.toLowerCase().includes(searchTerm.toLowerCase())
+    invoice.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    invoice.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || []
 
   return (
@@ -76,46 +76,65 @@ export function InvoicesList() {
             ) : (
               <div className="space-y-4">
                 {filteredInvoices.map((invoice) => {
-                  const totalAmount = invoice.lines.reduce((sum, line) => {
-                    const lineSubtotal = (line.quantity * line.unitPrice) - (line.discountAmount || 0)
-                    const vatAmount = lineSubtotal * ((line.vatRate || 0) / 100)
+                  const totalAmount = (invoice.lines || []).reduce((sum, line) => {
+                    const quantity = line?.quantity || 0
+                    const unitPrice = line?.unitPrice || 0
+                    const lineSubtotal = (quantity * unitPrice) - (line?.discountAmount || 0)
+                    const vatAmount = lineSubtotal * ((line?.vatRate || line?.taxRate || 14) / 100)
                     return sum + lineSubtotal + vatAmount
                   }, 0)
                   
                   return (
                     <div key={invoice.uuid} className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors">
-                      <div className="flex justify-between items-center">
-                        <div className="space-y-1">
+                      <div className="flex flex-col md:flex-row justify-between gap-4">
+                        <div className="space-y-1 flex-1">
                           <div className="flex items-center space-x-3">
                             <h3 className="font-semibold text-slate-900">
-                              {invoice.invoiceNumber}
+                              {invoice.invoiceNumber || 'No Number'}
                             </h3>
                             <span className={`status-${invoice.status === 'validated' ? 'validated' : 
                                            invoice.status === 'sent' ? 'pending' : 'draft'}`}>
-                              {invoice.status}
+                              {invoice.status || 'draft'}
                             </span>
                           </div>
                           <p className="text-sm text-slate-600">
-                            <span className="font-medium">{invoice.customer.name}</span>
+                            <span className="font-medium">{invoice.customer?.name || 'Unknown Customer'}</span>
                             {' • '}
                             <span>{formatDate(invoice.issueDateTime)}</span>
                           </p>
                         </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="text-right">
+                        <div className="flex flex-row items-center justify-between md:justify-end space-x-4">
+                          <div className="text-left md:text-right">
                             <p className="font-semibold text-slate-900">
                               {formatCurrency(totalAmount)}
                             </p>
                             <p className="text-sm text-slate-500">
-                              {invoice.currency}
+                              {invoice.currency || 'EGP'}
                             </p>
                           </div>
-                          <Link to={`/invoices/${encodeURIComponent(invoice.invoiceNumber)}`}>
-                            <Button variant="outline" size="sm" className="border-slate-200 text-slate-600 hover:bg-slate-50">
-                              <Eye className="h-4 w-4 mr-2" />
-                              View
+                          <div className="flex items-center space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center"
+                              onClick={() => generatePDF(invoice)}
+                              title="Download PDF"
+                            >
+                              <Download className="h-4 w-4 md:mr-2" />
+                              <span className="hidden md:inline">PDF</span>
                             </Button>
-                          </Link>
+                            <Link to={`/invoices/${encodeURIComponent(invoice.invoiceNumber)}`}>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center"
+                                title="View Invoice"
+                              >
+                                <Eye className="h-4 w-4 md:mr-2" />
+                                <span className="hidden md:inline">View</span>
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     </div>
