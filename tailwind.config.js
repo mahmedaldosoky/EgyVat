@@ -51,33 +51,33 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Deloitte Professional Color Palette
+        // Deloitte Professional Gray Palette
         deloitte: {
-          50: '#f7f9fa',
-          100: '#eef3f6',
-          200: '#dae4ea',
-          300: '#bccdd7',
-          400: '#98b0bf',
-          500: '#7c95a8',
-          600: '#6b8196',
-          700: '#5a6b7a',
-          800: '#4d5965',
-          900: '#424954',
-          950: '#2a2f36',
+          50: '#f8f9fa',
+          100: '#f1f3f4',
+          200: '#e8eaed',
+          300: '#dadce0',
+          400: '#bdc1c6',
+          500: '#9aa0a6',
+          600: '#80868b',
+          700: '#62666A', // Main Deloitte Gray
+          800: '#3c4043',
+          900: '#202124',
+          950: '#000000', // Deloitte Black
         },
         // Deloitte Green (Primary Brand)
         brand: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e', // Main Deloitte Green
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
-          950: '#052e16',
+          50: '#f7fdf0',
+          100: '#edfce0',
+          200: '#dbf8c2',
+          300: '#bfef94',
+          400: '#9de158',
+          500: '#86BC25', // Main Deloitte Green
+          600: '#73a020',
+          700: '#5a7d1c',
+          800: '#4a641c',
+          900: '#3f541c',
+          950: '#1f2e0a',
         },
         // Professional Navy
         navy: {
@@ -93,14 +93,28 @@ export default {
           900: '#0f172a',
           950: '#020617',
         },
-        // Status Colors
-        success: {
+        // Deloitte Secondary Green
+        secondary: {
           50: '#f0fdf4',
           100: '#dcfce7',
-          500: '#22c55e',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#4ade80',
+          500: '#00A651', // Secondary Deloitte Green
           600: '#16a34a',
           700: '#15803d',
           800: '#166534',
+          900: '#14532d',
+          950: '#052e16',
+        },
+        // Status Colors
+        success: {
+          50: '#f7fdf0',
+          100: '#edfce0',
+          500: '#86BC25',
+          600: '#73a020',
+          700: '#5a7d1c',
+          800: '#4a641c',
         },
         warning: {
           50: '#fffbeb',
