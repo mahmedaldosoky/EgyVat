@@ -307,9 +307,30 @@ export function CreateInvoice() {
 
           {createMutation.error && (
             <div className="bg-red-50 border border-red-200 rounded-md p-4">
-              <p className="text-sm text-red-800">
-                Error creating invoice. Please try again.
-              </p>
+              <div className="text-sm text-red-800">
+                {(() => {
+                  const errorMessage = createMutation.error.message || 'Error creating invoice. Please try again.'
+                  
+                  // Check if the error message contains multiple validation errors
+                  if (errorMessage.includes(':') && errorMessage.includes(',')) {
+                    const [title, errorsText] = errorMessage.split(': ', 2)
+                    const errors = errorsText.split(', ')
+                    
+                    return (
+                      <div>
+                        <p className="font-medium mb-2">{title}</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {errors.map((error, index) => (
+                            <li key={index}>{error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )
+                  }
+                  
+                  return <p>{errorMessage}</p>
+                })()}
+              </div>
             </div>
           )}
         </form>

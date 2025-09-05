@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Download } from 'lucide-react'
+import { ArrowLeft, Download, Building2, User, Calendar, CreditCard } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,11 +14,23 @@ export function InvoiceDetails() {
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case 'paid': return 'success'
+      case 'paid': 
+      case 'validated': return 'success'
       case 'sent': return 'default' 
       case 'draft': return 'outline'
       case 'overdue': return 'danger'
       default: return 'outline'
+    }
+  }
+
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'validated': return 'Validated'
+      case 'paid': return 'Paid'
+      case 'sent': return 'Sent'
+      case 'draft': return 'Draft'
+      case 'overdue': return 'Overdue'
+      default: return status
     }
   }
 
@@ -30,257 +42,244 @@ export function InvoiceDetails() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-64 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-48"></div>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="animate-pulse space-y-4">
-              <div className="h-4 bg-gray-200 rounded w-full"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+      <div className="min-h-screen bg-slate-50 py-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 rounded w-64"></div>
+            <div className="h-4 bg-gray-200 rounded w-48"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <Card><CardContent className="p-6"><div className="h-40 bg-gray-200 rounded"></div></CardContent></Card>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )
   }
 
   if (error || !invoice) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Invoice not found</p>
-        <Link to="/invoices" className="text-primary-600 hover:text-primary-700 mt-2 inline-block">
-          ← Back to invoices
-        </Link>
+      <div className="min-h-screen bg-slate-50 py-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">Invoice not found</p>
+            <Link to="/invoices" className="text-brand-600 hover:text-brand-700 mt-4 inline-block font-medium">
+              ← Back to invoices
+            </Link>
+          </div>
+        </div>
       </div>
     )
   }
 
-  // Ensure lines array exists and handle potentially undefined values
+  // Calculate totals
   const lines = invoice.lines || []
   const subtotal = lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0)
   const totalTax = lines.reduce((sum, line) => {
-    const taxRate = line.taxRate || line.vatRate || 0.14 // Default to 14% VAT if not specified
+    const taxRate = (line.taxRate || line.vatRate || 14) / 100
     return sum + (line.quantity * line.unitPrice * taxRate)
   }, 0)
   const total = subtotal + totalTax
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <div className="flex items-center space-x-4 mb-2">
-            <Link to="/invoices">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Invoices
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Link to="/invoices" className="inline-flex items-center text-slate-600 hover:text-slate-900 mb-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Invoices
+          </Link>
+          
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-slate-900">{invoice.invoiceNumber}</h1>
+                <Badge variant={getStatusVariant(invoice.status || 'draft')} className="text-sm">
+                  {getStatusDisplay(invoice.status || 'draft')}
+                </Badge>
+              </div>
+              <div className="flex items-center text-slate-600 text-sm">
+                <Calendar className="h-4 w-4 mr-2" />
+                {formatDate(invoice.issueDateTime)}
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => generatePDF(invoice)}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download PDF
               </Button>
-            </Link>
-          </div>
-          <div className="flex items-center space-x-4">
-            <h1 className="text-3xl font-bold text-gray-900">{invoice.invoiceNumber || 'Invoice Details'}</h1>
-            <Badge variant={getStatusVariant(invoice.status || 'draft')}>
-              {invoice.status || 'draft'}
-            </Badge>
-          </div>
-          {invoice.createdAt && (
-            <p className="mt-2 text-gray-600">
-              Created on {formatDate(invoice.createdAt)}
-            </p>
-          )}
-        </div>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline"
-            onClick={() => generatePDF(invoice)}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download PDF
-          </Button>
-          {invoice?.status && invoice.status !== 'paid' && (
-            <div className="flex space-x-2">
-              {invoice.status === 'draft' && (
-                <Button 
-                  onClick={() => handleStatusUpdate('sent')}
-                  disabled={updateStatusMutation.isPending}
-                >
-                  Send Invoice
-                </Button>
-              )}
-              {invoice.status === 'sent' && (
-                <Button 
-                  variant="success"
-                  onClick={() => handleStatusUpdate('paid')}
-                  disabled={updateStatusMutation.isPending}
-                >
-                  Mark as Paid
-                </Button>
+              {invoice?.status && invoice.status !== 'paid' && invoice.status !== 'validated' && (
+                <>
+                  {invoice.status === 'draft' && (
+                    <Button 
+                      onClick={() => handleStatusUpdate('sent')}
+                      disabled={updateStatusMutation.isPending}
+                    >
+                      Send Invoice
+                    </Button>
+                  )}
+                  {invoice.status === 'sent' && (
+                    <Button 
+                      onClick={() => handleStatusUpdate('paid')}
+                      disabled={updateStatusMutation.isPending}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Mark as Paid
+                    </Button>
+                  )}
+                </>
               )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Invoice Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Company Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Company Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* From */}
+              <Card className="border-0 shadow-md">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
+                    <Building2 className="h-5 w-5" />
+                    From
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-2">
+                    <p className="font-semibold text-slate-900 text-lg">{invoice.supplier?.name}</p>
+                    <p className="text-slate-600">{invoice.supplier?.address}</p>
+                    <p className="text-sm text-slate-500">
+                      Tax Number: {invoice.supplier?.taxNumber}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* To */}
+              <Card className="border-0 shadow-md">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
+                    <User className="h-5 w-5" />
+                    To
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-2">
+                    <p className="font-semibold text-slate-900 text-lg">{invoice.customer?.name}</p>
+                    <p className="text-slate-600">{invoice.customer?.address}</p>
+                    {invoice.customer?.taxNumber && (
+                      <p className="text-sm text-slate-500">
+                        Tax Number: {invoice.customer.taxNumber}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Line Items */}
+            <Card className="border-0 shadow-md">
               <CardHeader>
-                <CardTitle className="text-lg">From</CardTitle>
+                <CardTitle className="text-xl">Items</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">{invoice.supplier?.name || 'N/A'}</p>
-                  <p className="text-gray-600">{invoice.supplier?.address || 'N/A'}</p>
-                  <p className="text-sm text-gray-500">
-                    Tax Number: {invoice.supplier?.taxNumber || 'N/A'}
-                  </p>
-                  {invoice.supplier?.activityCode && (
-                    <p className="text-sm text-gray-500">
-                      Activity Code: {invoice.supplier.activityCode}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">To</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">{invoice.customer?.name || 'N/A'}</p>
-                  <p className="text-gray-600">{invoice.customer?.address || 'N/A'}</p>
-                  {invoice.customer?.taxNumber && (
-                    <p className="text-sm text-gray-500">
-                      Tax Number: {invoice.customer.taxNumber}
-                    </p>
-                  )}
-                  {invoice.customer?.type === 'b2B' && invoice.customer?.nationalId && (
-                    <p className="text-sm text-gray-500">
-                      Registration: {invoice.customer.nationalId}
-                    </p>
+                <div className="space-y-4">
+                  {lines && lines.length > 0 ? lines.map((line, index) => (
+                    <div key={index} className="flex justify-between items-start p-4 bg-slate-50 rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-slate-900">{line.description}</h4>
+                        <p className="text-sm text-slate-600 mt-1">
+                          {line.quantity} × {formatCurrency(line.unitPrice)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-slate-900">
+                          {formatCurrency(line.quantity * line.unitPrice)}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          +{((line.taxRate || line.vatRate || 14))}% VAT
+                        </p>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="text-center py-8 text-slate-500">
+                      No items found
+                    </div>
                   )}
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Line Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Line Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-2">Description</th>
-                      <th className="text-right py-3 px-2">Qty</th>
-                      <th className="text-right py-3 px-2">Unit Price</th>
-                      <th className="text-right py-3 px-2">Tax Rate</th>
-                      <th className="text-right py-3 px-2">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lines && lines.length > 0 ? lines.map((line, index) => (
-                      <tr key={index} className="border-b border-gray-100">
-                        <td className="py-3 px-2">{line.description}</td>
-                        <td className="text-right py-3 px-2">{line.quantity}</td>
-                        <td className="text-right py-3 px-2">{formatCurrency(line.unitPrice)}</td>
-                        <td className="text-right py-3 px-2">{((line.taxRate || line.vatRate || 0.14) * 100).toFixed(0)}%</td>
-                        <td className="text-right py-3 px-2 font-semibold">
-                          {formatCurrency(line.amount || (line.quantity * line.unitPrice))}
-                        </td>
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={5} className="text-center py-4 text-gray-500">
-                          No line items found
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Invoice Summary */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Invoice Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between">
-                <span>Issue Date:</span>
-                <span className="font-medium">{formatDate(invoice.issueDateTime)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Currency:</span>
-                <span className="font-medium">{invoice.currency || 'EGP'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Exchange Rate:</span>
-                <span className="font-medium">{invoice.exchangeRate || '1.00'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Document Type:</span>
-                <span className="font-medium">{invoice.documentType || 'Standard Invoice'}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Totals</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>{formatCurrency(subtotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>VAT (14%):</span>
-                <span>{formatCurrency(totalTax)}</span>
-              </div>
-              <div className="border-t pt-3">
-                <div className="flex justify-between">
-                  <span className="font-semibold text-lg">Total:</span>
-                  <span className="font-bold text-lg">{formatCurrency(total)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Validation Errors */}
-          {invoice.validationErrors && invoice.validationErrors.length > 0 && (
-            <Card>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Invoice Summary */}
+            <Card className="border-0 shadow-md">
               <CardHeader>
-                <CardTitle className="text-red-600">Validation Issues</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
+                  <CreditCard className="h-5 w-5" />
+                  Summary
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {invoice.validationErrors.map((error, index) => (
-                    <div key={index} className="text-sm">
-                      <span className="font-medium text-red-600">{error.field}:</span>
-                      <span className="text-gray-600 ml-2">{error.message}</span>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>VAT (14%)</span>
+                    <span>{formatCurrency(totalTax)}</span>
+                  </div>
+                  <div className="border-t pt-3">
+                    <div className="flex justify-between text-lg font-bold text-slate-900">
+                      <span>Total</span>
+                      <span>{formatCurrency(total)}</span>
                     </div>
-                  ))}
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t text-sm text-slate-500 space-y-1">
+                  <div className="flex justify-between">
+                    <span>Currency:</span>
+                    <span>{invoice.currency || 'EGP'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Exchange Rate:</span>
+                    <span>{invoice.exchangeRate || '1.00'}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          )}
+
+            {/* Validation Errors (only if there are errors) */}
+            {invoice.validationErrors && invoice.validationErrors.length > 0 && (
+              <Card className="border-red-200 shadow-md">
+                <CardHeader>
+                  <CardTitle className="text-lg text-red-600">Issues</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {invoice.validationErrors.map((error, index) => (
+                      <div key={index} className="text-sm p-3 bg-red-50 rounded-md">
+                        <span className="font-medium text-red-800">{error.field}:</span>
+                        <span className="text-red-700 ml-2">{error.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     </div>

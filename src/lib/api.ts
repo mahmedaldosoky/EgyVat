@@ -19,18 +19,28 @@ async function fetchApi(endpoint: string, options?: RequestInit) {
     ...options,
   })
 
+  const data = await response.json()
+  const parsedData = data.body ? JSON.parse(data.body) : data
+
   if (!response.ok) {
-    throw new ApiError(response.status, `API Error: ${response.statusText}`)
+    // Extract specific error messages from API response
+    const errorMessage = parsedData.message || `API Error: ${response.statusText}`
+    const errorDetails = parsedData.errors || []
+    
+    // Create a detailed error message
+    const fullErrorMessage = errorDetails.length > 0 
+      ? `${errorMessage}: ${errorDetails.join(', ')}`
+      : errorMessage
+    
+    throw new ApiError(response.status, fullErrorMessage)
   }
 
-  const data = await response.json()
-  return data.body ? JSON.parse(data.body) : data
+  return parsedData
 }
 
 async function getInvoicesHelper(): Promise<Invoice[]> {
   const response = await fetchApi('/invoices')
-    return response.data.invoices
-
+  return response.data?.invoices || response.data || response
 }
 
 export const api = {
@@ -41,15 +51,17 @@ export const api = {
 
   async getInvoice(invoiceNumber: string): Promise<Invoice> {
     // GET /invoices/{invoiceNumber} -> EgyVAT-InvoiceRetriever
-    return fetchApi(`/invoices/${encodeURIComponent(invoiceNumber)}`)
+    const response = await fetchApi(`/invoices/${encodeURIComponent(invoiceNumber)}`)
+    return response.data || response // Handle both wrapped and unwrapped responses
   },
 
   async createInvoice(data: CreateInvoiceRequest): Promise<Invoice> {
     // POST /invoices -> EgyVAT-InvoiceGenerator
-    return fetchApi('/invoices', {
+    const response = await fetchApi('/invoices', {
       method: 'POST',
       body: JSON.stringify(data),
     })
+    return response.data || response
   },
 
   async updateInvoice(invoiceNumber: string, data: Partial<Invoice>): Promise<Invoice> {
