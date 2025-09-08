@@ -72,11 +72,11 @@ export const api = {
     })
   },
 
-  async updateInvoiceStatus(invoiceNumber: string, status: string): Promise<Invoice> {
-    // PUT /invoices/{invoiceNumber} -> EgyVAT-InvoiceGenerator (update status only)
+  async updateInvoiceStatus(invoiceNumber: string, action: string): Promise<Invoice> {
+    // PUT /invoices/{invoiceNumber} -> EgyVAT-InvoiceGenerator with action
     return fetchApi(`/invoices/${encodeURIComponent(invoiceNumber)}`, {
       method: 'PUT',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ action }),
     })
   },
 
@@ -84,32 +84,44 @@ export const api = {
   async getDashboardStats(): Promise<DashboardStats> {
     try {
       const invoices = await getInvoicesHelper()
-      console.log('getDashboardStats - invoices:', invoices)
-      console.log('getDashboardStats - invoices length:', invoices.length)
       
       // Calculate stats from invoice data
       const totalInvoices = invoices.length
+      
+      // Check for both 'Valid' and 'Validated' statuses (case-insensitive)
       const validatedInvoices = invoices.filter(inv => {
-        console.log('Checking invoice status:', inv.status)
-        return inv.status === 'validated'
+        const status = inv.status?.toLowerCase()
+        return status === 'valid' || status === 'validated'
       }).length
-      const pendingInvoices = invoices.filter(inv => inv.status === 'sent' || inv.status === 'draft').length
       
-      console.log('Total invoices:', totalInvoices)
-      console.log('Validated invoices:', validatedInvoices)
+      const pendingInvoices = invoices.filter(inv => {
+        const status = inv.status?.toLowerCase()
+        return status === 'submitted' || status === 'draft' || status === 'submitting'
+      }).length
       
-      // Calculate total revenue from validated invoices
+      // Calculate total revenue from valid/validated invoices
       const totalRevenue = invoices
-        .filter(inv => inv.status === 'validated')
+        .filter(inv => {
+          const status = inv.status?.toLowerCase()
+          return status === 'valid' || status === 'validated'
+        })
         .reduce((sum, inv) => {
+          if (!inv.lines || !Array.isArray(inv.lines)) return sum
+          
           const invoiceTotal = inv.lines.reduce((lineSum, line) => {
+            // Handle missing or invalid data
+            const quantity = line.quantity || 0
+            const unitPrice = line.unitPrice || 0
+            const discountAmount = line.discountAmount || 0
+            const vatRate = line.vatRate || 14 // Default 14% VAT in Egypt
+            
             // Calculate line total: (quantity * unitPrice) - discountAmount + VAT
-            const lineSubtotal = (line.quantity * line.unitPrice) - (line.discountAmount || 0)
-            const vatAmount = lineSubtotal * ((line.vatRate || 0) / 100)
-            console.log(`Line calculation: ${line.quantity} * ${line.unitPrice} - ${line.discountAmount} + VAT(${line.vatRate}%) = ${lineSubtotal + vatAmount}`)
+            const lineSubtotal = (quantity * unitPrice) - discountAmount
+            const vatAmount = lineSubtotal * (vatRate / 100)
+            
             return lineSum + lineSubtotal + vatAmount
           }, 0)
-          console.log('Invoice total:', invoiceTotal)
+          
           return sum + invoiceTotal
         }, 0)
 

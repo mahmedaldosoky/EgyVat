@@ -92,9 +92,17 @@ export function InvoicesList() {
                             <h3 className="font-semibold text-slate-900">
                               {invoice.invoiceNumber || 'No Number'}
                             </h3>
-                            <span className={`status-${invoice.status === 'validated' ? 'validated' : 
-                                           invoice.status === 'sent' ? 'pending' : 'draft'}`}>
-                              {invoice.status || 'draft'}
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              invoice.status === 'valid' ? 'bg-green-100 text-green-700' : 
+                              invoice.status === 'validated' ? 'bg-blue-100 text-blue-700' :
+                              invoice.status === 'submitted' ? 'bg-indigo-100 text-indigo-700' :
+                              invoice.status === 'submitting' ? 'bg-yellow-100 text-yellow-700' :
+                              invoice.status === 'invalid' ? 'bg-red-100 text-red-700' :
+                              invoice.status === 'cancelled' ? 'bg-gray-100 text-gray-700' :
+                              invoice.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>
+                              {invoice.status?.toUpperCase() || 'DRAFT'}
                             </span>
                           </div>
                           <p className="text-sm text-slate-600">

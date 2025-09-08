@@ -1,7 +1,7 @@
 export interface Invoice {
   uuid: string
   invoiceNumber: string
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'validated' // Added 'validated'
+  status: 'draft' | 'validated' | 'submitting' | 'submitted' | 'valid' | 'invalid' | 'cancelled' | 'rejected' | 'sent' | 'paid' | 'overdue'
   issueDateTime: string
   createdAt: string
   currency: string
@@ -12,6 +12,18 @@ export interface Invoice {
   customer: Customer
   lines: InvoiceLine[]
   validationErrors?: ValidationError[]
+  
+  // ETA Integration fields
+  etaSubmissionId?: string
+  etaSubmissionDate?: string
+  etaResponse?: string
+  etaLongId?: string
+  etaInternalId?: string
+  etaAcceptanceDate?: string
+  etaRejectionReasons?: string[]
+  submissionAttempts?: number
+  lastSubmissionAttempt?: string
+  updatedAt?: string
 }
 
 export interface Supplier {

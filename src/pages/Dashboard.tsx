@@ -253,9 +253,12 @@ export function Dashboard() {
                           </p>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`status-${invoice.status === 'validated' ? 'validated' : 
-                          invoice.status === 'sent' ? 'pending' : 'draft'}`}>
-                          {invoice.status || 'draft'}
+                          <span className={`status-${
+                            ['valid', 'validated'].includes(invoice.status?.toLowerCase() || '') ? 'validated' : 
+                            ['submitted', 'submitting'].includes(invoice.status?.toLowerCase() || '') ? 'pending' : 
+                            invoice.status?.toLowerCase() === 'invalid' ? 'error' : 'draft'
+                          }`}>
+                          {invoice.status || 'Draft'}
                           </span>
                         </td>
                         <td className="px-6 py-4">

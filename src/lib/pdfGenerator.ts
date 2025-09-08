@@ -26,7 +26,9 @@ export function generatePDF(invoice: Invoice) {
   const lines = invoice.lines || []
   const subtotal = lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0)
   const totalTax = lines.reduce((sum, line) => {
-    const taxRate = line.taxRate || line.vatRate || 0.14
+    // vatRate is stored as percentage (14 for 14%), not decimal
+    const vatRate = line.vatRate || line.taxRate || 14
+    const taxRate = vatRate / 100 // Convert to decimal for calculation
     return sum + (line.quantity * line.unitPrice * taxRate)
   }, 0)
   const total = subtotal + totalTax
@@ -439,7 +441,7 @@ export function generatePDF(invoice: Invoice) {
               <td><strong>${line.description}</strong></td>
               <td style="text-align: center;">${line.quantity}</td>
               <td style="text-align: center;">${formatCurrency(line.unitPrice)}</td>
-              <td style="text-align: center;"><span class="highlight-text">${((line.taxRate || line.vatRate || 0.14) * 100).toFixed(0)}%</span></td>
+              <td style="text-align: center;"><span class="highlight-text">${(line.vatRate || line.taxRate || 14).toFixed(0)}%</span></td>
               <td><strong>${formatCurrency(line.amount || (line.quantity * line.unitPrice))}</strong></td>
             </tr>
           `).join('')}

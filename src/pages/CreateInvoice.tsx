@@ -7,9 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useCreateInvoice } from '@/hooks/useInvoices'
 import { createInvoiceSchema, type CreateInvoiceFormData } from '@/lib/validations'
+import { useToast } from '@/hooks/useToast'
 
 export function CreateInvoice() {
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const createMutation = useCreateInvoice()
 
   const {
@@ -43,7 +45,12 @@ export function CreateInvoice() {
   const onSubmit = (data: CreateInvoiceFormData) => {
     createMutation.mutate(data, {
       onSuccess: () => {
+        showToast('Invoice created successfully!', 'success')
         navigate('/invoices')
+      },
+      onError: (error: any) => {
+        const errorMessage = error?.message || 'Error creating invoice. Please try again.'
+        showToast(errorMessage, 'error')
       }
     })
   }

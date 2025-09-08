@@ -33,11 +33,11 @@ export function useUpdateInvoiceStatus() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ invoiceNumber, status }: { invoiceNumber: string; status: string }) => 
-      api.updateInvoiceStatus(invoiceNumber, status),
-    onSuccess: (data) => {
+    mutationFn: ({ invoiceNumber, action }: { invoiceNumber: string; action: string }) => 
+      api.updateInvoiceStatus(invoiceNumber, action),
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] })
-      queryClient.invalidateQueries({ queryKey: ['invoices', data.invoiceNumber] })
+      queryClient.invalidateQueries({ queryKey: ['invoices', variables.invoiceNumber] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
