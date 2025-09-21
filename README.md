@@ -1,38 +1,88 @@
-# EgyVAT Frontend
+# EgyVAT - Egyptian VAT Invoice Management System
 
-Egyptian VAT Invoice Management System built with React, TypeScript, and Vite.
+A full-stack application for managing Egyptian VAT-compliant invoices with AWS Lambda backend and React frontend.
 
-## Setup
+## Project Structure
 
-1. Install dependencies:
-```bash
-npm install
+```
+EgyVAT/
+├── Frontend/                 # React/TypeScript frontend
+├── InvoiceGenerator/         # AWS Lambda function
+├── InvoiceRetriever/         # AWS Lambda function  
+├── ReportGenerator/          # AWS Lambda function
+├── Shared/                   # Common .NET libraries
+├── deploy-aws-cli.bat        # AWS deployment script
+├── deploy-to-lambda.bat      # Lambda deployment script
+└── EgyVAT.sln               # .NET solution file
 ```
 
-2. Start development server:
+## Quick Start
+
+### Frontend Development
 ```bash
+cd Frontend
+npm install
 npm run dev
 ```
+Visit http://localhost:5173
 
-3. Open http://localhost:5173
+### Backend Development
+```bash
+# Build all lambda functions
+dotnet build EgyVAT.sln
 
-## Features
+# Deploy to AWS (requires AWS CLI configured)
+./deploy-aws-cli.bat
+```
 
-- Egyptian VAT compliant invoice management
-- Dashboard with statistics
-- Create and view invoices
-- Real-time validation with Egyptian Tax Authority rules
-- Modern UI with Blue/White theme and Green success states
+## Components
 
-## Tech Stack
+### Frontend
+- **Tech Stack**: React 18, TypeScript, Vite, TanStack Query, shadcn/ui
+- **Features**: Invoice management, dashboard, Egyptian VAT compliance
+- **Location**: `/Frontend`
 
-- React 18 + TypeScript
-- Vite for fast development
-- TanStack Query for API state
-- React Hook Form + Zod for validation
-- shadcn/ui + Tailwind CSS for UI
-- Lucide React for icons
+### Backend (AWS Lambda)
+- **InvoiceGenerator**: Creates new VAT invoices
+- **InvoiceRetriever**: Fetches existing invoices  
+- **ReportGenerator**: Generates VAT reports
+- **Language**: C# .NET
+- **Deployment**: AWS Lambda via AWS CLI
 
-## API Integration
+## Development Workflow
 
-Update `src/lib/api.ts` with your Lambda function URLs to connect to your AWS backend.
+1. **Frontend**: Develop in `/Frontend` with hot reload
+2. **Backend**: Test locally with .NET CLI, deploy to AWS
+3. **Integration**: Update API endpoints in `Frontend/src/lib/api.ts`
+
+## Deployment
+
+### Frontend
+Deploy to your preferred hosting (Vercel, Netlify, S3, etc.)
+
+### Backend  
+Use provided deployment scripts:
+```bash
+# Deploy all functions
+./deploy-aws-cli.bat
+
+# Or specific function
+./deploy-to-lambda.bat
+```
+
+## Requirements
+
+- Node.js 18+ (Frontend)
+- .NET 6+ SDK (Backend)
+- AWS CLI configured (Deployment)
+
+## Environment Setup
+
+1. Configure AWS credentials
+2. Update lambda function URLs in frontend API configuration
+3. Set up any required environment variables
+
+## Documentation
+
+- Frontend details: `/Frontend/README.md`
+- Reports documentation: `/REPORTS_README.md`
