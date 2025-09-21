@@ -54,11 +54,6 @@ dotnet build && ./deploy-aws-cli.bat
 
 ### **The technology behind the magic**
 
-**Modern Stack:** React 18 · TypeScript · .NET 8 · AWS Lambda · DynamoDB  
+**Modern Stack:** React 18 , TypeScript , .NET 8 , AWS Lambda , DynamoDB  
 **Live Demo:** [Experience EgyVAT](http://egyvat-dashboard-1755890521.s3-website.eu-central-1.amazonaws.com/)  
 **API:** Serverless, scalable, secure  
-
----
-
-*Crafted with obsessive attention to detail.  
-Designed for developers who demand excellence.*
